@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <title>Crypto Exchange Prototype</title>
+    <script src="https://cdn.tailwindcss.com"></script> </head>
+<body class="bg-gray-100 p-8">
+    <div class="max-w-4xl mx-auto">
+        <h1 class="text-3xl font-bold mb-6">Crypto Dashboard (User ID: 1)</h1>
+
+        <div id="wallet-container" class="grid grid-cols-2 gap-4 mb-8">
+            </div>
+
+        <h2 class="text-2xl font-bold mb-4">P2P Market</h2>
+        <div class="bg-white rounded-lg shadow overflow-hidden">
+            <table class="w-full text-left">
+                <thead class="bg-gray-200">
+                    <tr>
+                        <th class="p-4">ประเภท</th>
+                        <th class="p-4">จำนวน</th>
+                        <th class="p-4">ราคา (Fiat)</th>
+                    </tr>
+                </thead>
+                <tbody id="p2p-body"></tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        // ฟังก์ชันดึงข้อมูลจาก API มาแสดงผล
+        async function loadData() {
+            // ดึงข้อมูล Wallet
+            const userRes = await fetch('/user/1');
+            const userData = await userRes.json();
+            const walletDiv = document.getElementById('wallet-container');
+            
+            userData.wallets.forEach(w => {
+                walletDiv.innerHTML += `
+                    <div class="bg-blue-500 text-white p-6 rounded-lg shadow-lg">
+                        <p class="text-sm opacity-80">${w.wallet_type}</p>
+                        <h3 class="text-2xl font-bold">${w.balance} ${w.coin_symbol}</h3>
+                    </div>
+                `;
+            });
+
+            // ดึงข้อมูล P2P Orders
+            const p2pRes = await fetch('/p2p');
+            const orders = await p2pRes.json();
+            const p2pBody = document.getElementById('p2p-body');
+
+            orders.forEach(o => {
+                p2pBody.innerHTML += `
+                    <tr class="border-b">
+                        <td class="p-4 ${o.type === 'BUY' ? 'text-green-600' : 'text-red-600'} font-bold">${o.type}</td>
+                        <td class="p-4">${o.amount} BTC</td>
+                        <td class="p-4">${o.price_fiat} THB</td>
+                    </tr>
+                `;
+            });
+        }
+
+        loadData();
+    </script>
+</body>
+</html>

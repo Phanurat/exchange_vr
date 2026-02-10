@@ -1,0 +1,27 @@
+{
+  "name": "exchange_vr",
+  "version": "1.0.0",
+  "description": "[คลิกเพื่อดูเอกสารรายละเอียด (Data dictionary)](https://docs.google.com/document/d/1HqIs7kLJzrvTnIns1_JhPcdkMGjllrrD2iWxcRrqVps/edit?usp=sharing)",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Phanurat/exchange_vr.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/Phanurat/exchange_vr/issues"
+  },
+  "homepage": "https://github.com/Phanurat/exchange_vr#readme",
+  "dependencies": {
+    "dotenv": "^17.2.4",
+    "express": "^5.2.1",
+    "sequelize": "^6.37.7",
+    "sqlite3": "^5.1.7"
+  }
+}
