@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Register - VR Exchange</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-slate-900 flex items-center justify-center min-h-screen">
+    <div class="bg-white p-8 rounded-3xl shadow-2xl w-full max-w-md">
+        <h2 class="text-3xl font-black text-slate-800 mb-2 text-center">Sign Up</h2>
+        <p class="text-slate-400 text-center mb-8 text-sm font-medium">Create your account and wallets</p>
+        <div class="space-y-4">
+            <input id="u" type="text" placeholder="Username" class="w-full border-2 border-slate-100 p-4 rounded-2xl outline-none focus:border-blue-500 transition">
+            <input id="p" type="password" placeholder="Password" class="w-full border-2 border-slate-100 p-4 rounded-2xl outline-none focus:border-blue-500 transition">
+            <button onclick="reg()" class="w-full bg-blue-600 text-white py-4 rounded-2xl font-bold shadow-lg hover:bg-blue-700 transition active:scale-95">Create Account</button>
+        </div>
+        <p class="mt-6 text-center text-sm text-slate-500">Already have an account? <a href="login.html" class="text-blue-600 font-bold">Login</a></p>
+    </div>
+    <script>
+        async function reg() {
+            const res = await fetch('/api/register', {
+                method: 'POST', headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({user_name: u.value, password: p.value})
+            });
+            if(res.ok) { alert("Registration Success!"); window.location.href='login.html'; }
+            else alert("Username already exists!");
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Login - VR Exchange</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-slate-900 flex items-center justify-center min-h-screen">
+    <div class="bg-white p-8 rounded-3xl shadow-2xl w-full max-w-md">
+        <h2 class="text-3xl font-black text-slate-800 mb-8 text-center uppercase tracking-tighter">Login</h2>
+        <div class="space-y-4">
+            <input id="u" type="text" placeholder="Username" class="w-full border-2 border-slate-100 p-4 rounded-2xl outline-none focus:border-indigo-500 transition">
+            <input id="p" type="password" placeholder="Password" class="w-full border-2 border-slate-100 p-4 rounded-2xl outline-none focus:border-indigo-500 transition">
+            <button onclick="login()" class="w-full bg-indigo-600 text-white py-4 rounded-2xl font-bold shadow-lg hover:bg-indigo-700 transition active:scale-95">Sign In</button>
+        </div>
+        <p class="mt-6 text-center text-sm text-slate-500">New user? <a href="register.html" class="text-indigo-600 font-bold">Create Account</a></p>
+    </div>
+    <script>
+        async function login() {
+            const res = await fetch('/api/login', {
+                method: 'POST', headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({user_name: u.value, password: p.value})
+            });
+            const data = await res.json();
+            if(data.success) {
+                localStorage.setItem('user_id', data.user_id);
+                localStorage.setItem('user_name', data.user_name);
+                window.location.href = 'index.html';
+            } else alert(data.message);
+        }
+    </script>
+</body>
+</html>

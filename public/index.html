@@ -1,65 +1,270 @@
 <!DOCTYPE html>
-<html lang="th">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Crypto Exchange Prototype</title>
-    <script src="https://cdn.tailwindcss.com"></script> </head>
-<body class="bg-gray-100 p-8">
-    <div class="max-w-4xl mx-auto">
-        <h1 class="text-3xl font-bold mb-6">Crypto Dashboard (User ID: 1)</h1>
-
-        <div id="wallet-container" class="grid grid-cols-2 gap-4 mb-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VR Exchange - Terminal</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap');
+        body { font-family: 'Inter', sans-serif; }
+        .tab-btn.active { color: #f0b90b; border-bottom: 2px solid #f0b90b; }
+    </style>
+</head>
+<body class="bg-[#f8f9fa] min-h-screen pb-10">
+    <nav class="bg-[#1e2329] text-white p-4 px-10 flex justify-between items-center sticky top-0 z-50 shadow-md">
+        <div class="flex items-center gap-8">
+            <span class="text-[#f0b90b] text-2xl font-black tracking-tighter cursor-pointer" onclick="tab('ov')">VR EXCHANGE</span>
+            <div class="flex gap-6 text-sm font-medium">
+                <button onclick="tab('ov')" class="tab-link hover:text-[#f0b90b] transition">Overview</button>
+                <button onclick="tab('sp')" class="tab-link hover:text-[#f0b90b] transition">Spot (Trade)</button>
+                <button onclick="tab('fn')" class="tab-link hover:text-[#f0b90b] transition">Funding (P2P)</button>
+                <button onclick="tab('tf')" class="tab-link text-blue-400 hover:text-blue-300 transition font-bold">Transfer</button>
             </div>
-
-        <h2 class="text-2xl font-bold mb-4">P2P Market</h2>
-        <div class="bg-white rounded-lg shadow overflow-hidden">
-            <table class="w-full text-left">
-                <thead class="bg-gray-200">
-                    <tr>
-                        <th class="p-4">ประเภท</th>
-                        <th class="p-4">จำนวน</th>
-                        <th class="p-4">ราคา (Fiat)</th>
-                    </tr>
-                </thead>
-                <tbody id="p2p-body"></tbody>
-            </table>
         </div>
-    </div>
+        <div class="flex items-center gap-4">
+            <span id="user-display" class="text-xs bg-gray-700 px-3 py-1 rounded-full text-gray-300"></span>
+            <button onclick="logout()" class="text-red-400 text-xs font-bold uppercase hover:text-red-300">Logout</button>
+        </div>
+    </nav>
+
+    <main class="max-w-6xl mx-auto mt-8 px-4">
+        
+        <div id="ov" class="tab-content space-y-6">
+            <div class="bg-white p-8 rounded-3xl border border-gray-100 shadow-sm">
+                <h3 class="text-gray-400 text-xs font-bold uppercase tracking-widest mb-2">Estimated Balance</h3>
+                <div class="text-5xl font-black text-slate-800 mb-8"><span id="total-val">0.00</span> <small class="text-xl text-gray-400">USDT</small></div>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div class="bg-gradient-to-br from-blue-50 to-white p-6 rounded-2xl border border-blue-100 relative overflow-hidden">
+                        <div class="relative z-10">
+                            <p class="text-blue-500 text-xs font-bold uppercase mb-1">Spot Account</p>
+                            <p id="ov-spot" class="text-3xl font-black text-slate-800"></p>
+                        </div>
+                        <div class="absolute right-[-10px] bottom-[-10px] text-blue-100 text-6xl font-black opacity-50">SPOT</div>
+                    </div>
+                    <div class="bg-gradient-to-br from-orange-50 to-white p-6 rounded-2xl border border-orange-100 relative overflow-hidden">
+                        <div class="relative z-10">
+                            <p class="text-orange-500 text-xs font-bold uppercase mb-1">Funding Account</p>
+                            <p id="ov-fund" class="text-3xl font-black text-slate-800"></p>
+                        </div>
+                        <div class="absolute right-[-10px] bottom-[-10px] text-orange-100 text-6xl font-black opacity-50">FUND</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="sp" class="tab-content hidden grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div class="lg:col-span-2 bg-white p-8 rounded-3xl border border-gray-100 shadow-sm">
+                <h3 class="font-bold text-xl mb-8 flex items-center gap-2 text-slate-800">
+                    <span class="w-1.5 h-6 bg-blue-500 rounded-full"></span> Spot Trading (BTC/USDT)
+                </h3>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-10">
+                    <div class="space-y-4">
+                        <div class="flex justify-between text-xs font-bold uppercase text-gray-400"><span>Buy BTC</span><span id="buy-avail">Avail: -</span></div>
+                        <input id="buy-price" type="number" placeholder="Price (USDT)" class="w-full bg-gray-50 p-4 rounded-2xl border-2 border-transparent focus:border-green-500 focus:bg-white outline-none transition">
+                        <input id="buy-amt" type="number" placeholder="Amount (BTC)" class="w-full bg-gray-50 p-4 rounded-2xl border-2 border-transparent focus:border-green-500 focus:bg-white outline-none transition">
+                        <button onclick="trade('Buy')" class="w-full bg-green-500 hover:bg-green-600 text-white py-4 rounded-2xl font-extrabold shadow-lg shadow-green-100 transition active:scale-[0.98]">Buy BTC</button>
+                    </div>
+                    <div class="space-y-4">
+                        <div class="flex justify-between text-xs font-bold uppercase text-gray-400"><span>Sell BTC</span><span id="sell-avail">Avail: -</span></div>
+                        <input id="sell-price" type="number" placeholder="Price (USDT)" class="w-full bg-gray-50 p-4 rounded-2xl border-2 border-transparent focus:border-red-500 focus:bg-white outline-none transition">
+                        <input id="sell-amt" type="number" placeholder="Amount (BTC)" class="w-full bg-gray-50 p-4 rounded-2xl border-2 border-transparent focus:border-red-500 focus:bg-white outline-none transition">
+                        <button onclick="trade('Sell')" class="w-full bg-red-500 hover:bg-red-600 text-white py-4 rounded-2xl font-extrabold shadow-lg shadow-red-100 transition active:scale-[0.98]">Sell BTC</button>
+                    </div>
+                </div>
+            </div>
+            <div class="bg-[#1e2329] text-white p-6 rounded-3xl shadow-xl flex flex-col h-[500px]">
+                <h3 class="text-gray-500 text-xs font-bold mb-4 uppercase tracking-widest border-b border-gray-800 pb-3">Public Order Book</h3>
+                <div class="grid grid-cols-3 text-[10px] text-gray-500 font-bold mb-2 px-2 uppercase">
+                    <span>Price</span><span>Amount</span><span class="text-right">User</span>
+                </div>
+                <div id="order-book" class="flex-1 overflow-auto text-[11px] font-mono space-y-1 pr-2"></div>
+            </div>
+        </div>
+
+        <div id="fn" class="tab-content hidden space-y-6">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div class="bg-white p-8 rounded-3xl border border-gray-100 shadow-sm">
+                    <h3 class="font-bold text-slate-800 mb-6 flex items-center gap-2 uppercase text-sm">
+                        <span class="w-2 h-2 bg-green-500 rounded-full"></span> Deposit (Mint Coin)
+                    </h3>
+                    <div class="space-y-4">
+                        <input id="m-coin" value="THB" class="w-full bg-gray-50 p-4 rounded-2xl border-none outline-none ring-2 ring-gray-50 focus:ring-slate-200">
+                        <input id="m-amt" type="number" placeholder="Amount to Mint" class="w-full bg-gray-50 p-4 rounded-2xl border-none outline-none ring-2 ring-gray-50 focus:ring-slate-200">
+                        <button onclick="mint()" class="w-full bg-slate-900 text-white py-4 rounded-2xl font-bold hover:bg-slate-800 transition shadow-lg">Mint Assets</button>
+                    </div>
+                </div>
+                <div class="bg-white p-8 rounded-3xl border border-gray-100 shadow-sm">
+                    <h3 class="font-bold text-slate-800 mb-6 flex items-center gap-2 uppercase text-sm">
+                        <span class="w-2 h-2 bg-red-500 rounded-full"></span> Withdraw (Burn Coin)
+                    </h3>
+                    <div class="space-y-4">
+                        <input id="b-amt" type="number" placeholder="Amount to Burn" class="w-full bg-gray-50 p-4 rounded-2xl border-none outline-none ring-2 ring-gray-50 focus:ring-red-100">
+                        <button onclick="burn()" class="w-full bg-red-600 text-white py-4 rounded-2xl font-bold hover:bg-red-700 transition shadow-lg shadow-red-50">Burn Assets</button>
+                    </div>
+                </div>
+            </div>
+            <div class="bg-white p-6 rounded-3xl border border-gray-100 shadow-sm">
+                <h3 class="font-bold text-gray-400 mb-4 uppercase text-[10px] tracking-[0.2em]">Audit Trail / History</h3>
+                <div id="history-list" class="space-y-2 max-h-[300px] overflow-auto pr-2"></div>
+            </div>
+        </div>
+
+        <div id="tf" class="tab-content hidden max-w-md mx-auto">
+            <div class="bg-white p-10 rounded-[40px] border border-gray-100 shadow-2xl relative">
+                <h2 class="text-2xl font-black mb-8 text-center text-slate-800">Transfer</h2>
+                <div class="space-y-6">
+                    <div class="relative">
+                        <label class="text-[10px] font-bold text-gray-400 absolute top-[-8px] left-4 bg-white px-2 uppercase">From</label>
+                        <select id="tf-from" class="w-full bg-gray-50 p-4 rounded-2xl border-2 border-gray-50 outline-none focus:border-blue-500 appearance-none">
+                            <option value="Spot">Spot Wallet</option>
+                            <option value="Funding">Funding Wallet</option>
+                        </select>
+                    </div>
+                    <div class="flex justify-center -my-3 relative z-10">
+                        <div class="bg-blue-500 text-white p-2 rounded-full shadow-lg">⬇️</div>
+                    </div>
+                    <div class="relative">
+                        <label class="text-[10px] font-bold text-gray-400 absolute top-[-8px] left-4 bg-white px-2 uppercase">To</label>
+                        <select id="tf-to" class="w-full bg-gray-50 p-4 rounded-2xl border-2 border-gray-50 outline-none focus:border-blue-500 appearance-none">
+                            <option value="Funding">Funding Wallet</option>
+                            <option value="Spot">Spot Wallet</option>
+                        </select>
+                    </div>
+                    <div class="space-y-2">
+                        <input id="tf-amt" type="number" placeholder="0.00" class="w-full text-center text-3xl font-black p-4 rounded-2xl bg-gray-50 border-none outline-none focus:ring-2 focus:ring-blue-500">
+                        <p class="text-center text-xs text-gray-400">Transfer between your own wallets is instant and free.</p>
+                    </div>
+                    <button onclick="handleTransfer()" class="w-full bg-blue-600 text-white py-5 rounded-3xl font-black text-lg shadow-xl shadow-blue-100 hover:bg-blue-700 active:scale-95 transition">Confirm Transfer</button>
+                </div>
+            </div>
+        </div>
+
+    </main>
 
     <script>
-        // ฟังก์ชันดึงข้อมูลจาก API มาแสดงผล
-        async function loadData() {
-            // ดึงข้อมูล Wallet
-            const userRes = await fetch('/user/1');
-            const userData = await userRes.json();
-            const walletDiv = document.getElementById('wallet-container');
-            
-            userData.wallets.forEach(w => {
-                walletDiv.innerHTML += `
-                    <div class="bg-blue-500 text-white p-6 rounded-lg shadow-lg">
-                        <p class="text-sm opacity-80">${w.wallet_type}</p>
-                        <h3 class="text-2xl font-bold">${w.balance} ${w.coin_symbol}</h3>
-                    </div>
-                `;
-            });
+        const uid = localStorage.getItem('user_id');
+        if(!uid) window.location.href = 'login.html';
+        document.getElementById('user-display').innerText = `@${localStorage.getItem('user_name')}`;
 
-            // ดึงข้อมูล P2P Orders
-            const p2pRes = await fetch('/p2p');
-            const orders = await p2pRes.json();
-            const p2pBody = document.getElementById('p2p-body');
-
-            orders.forEach(o => {
-                p2pBody.innerHTML += `
-                    <tr class="border-b">
-                        <td class="p-4 ${o.type === 'BUY' ? 'text-green-600' : 'text-red-600'} font-bold">${o.type}</td>
-                        <td class="p-4">${o.amount} BTC</td>
-                        <td class="p-4">${o.price_fiat} THB</td>
-                    </tr>
-                `;
-            });
+        function tab(t) {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+            document.getElementById(t).classList.remove('hidden');
+            loadAll();
         }
 
-        loadData();
+        async function loadAll() {
+            try {
+                // Get Account Details (Balance & Coin Symbols)
+                const aRes = await fetch('/api/account/'+uid);
+                const acc = await aRes.json();
+                
+                if(acc) {
+                    document.getElementById('total-val').innerText = (acc.spot_bal + acc.fund_bal).toLocaleString(undefined, {minimumFractionDigits:2});
+                    document.getElementById('ov-spot').innerText = `${acc.spot_bal.toFixed(8)} ${acc.spot_coin}`;
+                    document.getElementById('ov-fund').innerText = `${acc.fund_bal.toFixed(2)} ${acc.fund_coin}`;
+                    document.getElementById('buy-avail').innerText = `Avail: ${acc.spot_bal.toFixed(4)} ${acc.spot_coin}`;
+                    document.getElementById('sell-avail').innerText = `Avail: ${acc.spot_bal.toFixed(4)} ${acc.spot_coin}`;
+                }
+
+                // Get Orders for Order Book
+                const oRes = await fetch('/api/orders');
+                const orders = await oRes.json();
+                document.getElementById('order-book').innerHTML = orders.map(o => `
+                    <div class="grid grid-cols-3 p-2 rounded hover:bg-white/5 transition group cursor-pointer">
+                        <span class="${o.order_type === 'Buy' ? 'text-green-400' : 'text-red-400'} font-bold">${o.price.toFixed(2)}</span>
+                        <span class="text-gray-300">${o.amount.toFixed(4)}</span>
+                        <span class="text-gray-500 text-right group-hover:text-blue-400 transition">${o.user_name}</span>
+                    </div>
+                `).join('');
+
+                // Get Transaction History
+                const hRes = await fetch('/api/history/'+uid);
+                const history = await hRes.json();
+                document.getElementById('history-list').innerHTML = history.map(h => `
+                    <div class="flex justify-between items-center text-xs p-4 bg-gray-50 rounded-2xl border border-gray-100 hover:bg-white transition">
+                        <div class="flex gap-3 items-center">
+                            <div class="p-2 rounded-full ${h.tx_type === 'Deposit' ? 'bg-green-100 text-green-600' : 'bg-blue-100 text-blue-600'}">
+                                ${h.tx_type === 'Deposit' ? '➕' : '🔄'}
+                            </div>
+                            <div>
+                                <span class="font-black text-slate-700 uppercase tracking-tighter">${h.tx_type}</span>
+                                <p class="text-gray-400 text-[10px] font-medium">${new Date(h.created_at).toLocaleString()}</p>
+                            </div>
+                        </div>
+                        <div class="text-right font-black text-slate-800 text-sm">
+                            ${h.amount} <span class="text-[10px] text-gray-400">${h.coin_symbol}</span>
+                        </div>
+                    </div>
+                `).join('') || '<p class="text-center text-gray-400 py-10 text-xs">No transactions yet.</p>';
+            } catch (e) { console.error("Load Error:", e); }
+        }
+
+        async function trade(type) {
+            const pVal = type === 'Buy' ? document.getElementById('buy-price').value : document.getElementById('sell-price').value;
+            const aVal = type === 'Buy' ? document.getElementById('buy-amt').value : document.getElementById('sell-amt').value;
+
+            if(!pVal || !aVal) return alert("Please enter price and amount");
+
+            await fetch('/api/order', {
+                method: 'POST', headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({user_id:uid, type, coin:'BTC', price:pVal, amount:aVal})
+            });
+            loadAll();
+            alert(`Order Placed: ${type} ${aVal} BTC @ ${pVal}`);
+        }
+
+        async function mint() {
+            const amt = document.getElementById('m-amt').value;
+            const coin = document.getElementById('m-coin').value;
+            if(!amt) return;
+            await fetch('/api/mint', {
+                method: 'POST', headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({user_id:uid, amount: amt, coin_symbol: coin})
+            });
+            loadAll(); 
+            alert("Minting Successful!");
+        }
+
+        async function burn() {
+            const amt = document.getElementById('b-amt').value;
+            if(!amt) return;
+            const res = await fetch('/api/burn', {
+                method: 'POST', headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({user_id:uid, amount: amt})
+            });
+            if(res.ok) { loadAll(); alert("Burn Successful!"); } 
+            else alert("Insufficient Balance in Funding Wallet");
+        }
+
+        async function handleTransfer() {
+            const amt = document.getElementById('tf-amt').value;
+            const from = document.getElementById('tf-from').value;
+            const to = document.getElementById('tf-to').value;
+
+            if(!amt || amt <= 0) return alert("Please enter a valid amount");
+            if(from === to) return alert("Source and destination wallets must be different");
+
+            const res = await fetch('/api/transfer', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ user_id: uid, amount: amt, from_type: from, to_type: to })
+            });
+            
+            const data = await res.json();
+            if(res.ok) {
+                alert(data.message);
+                loadAll();
+                document.getElementById('tf-amt').value = '';
+            } else {
+                alert(data.message);
+            }
+        }
+
+        function logout() { localStorage.clear(); window.location.href='login.html'; }
+        
+        tab('ov'); // Initial load
     </script>
 </body>
 </html>
