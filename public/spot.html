@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Spot Assets - VR Exchange</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-50 min-h-screen">
+    <nav class="bg-[#1e2329] text-white p-4 px-10 flex justify-between items-center sticky top-0 z-50 shadow-md">
+        <div class="flex items-center gap-8">
+            <a href="/" class="text-[#f0b90b] text-2xl font-black tracking-tighter italic">VR EXCHANGE</a>
+            <div class="flex gap-6 text-sm font-medium">
+                <a href="/" class="tab-link hover:text-[#f0b90b] transition">Overview</a>
+                <a href="/spot" class="text-[#f0b90b] transition">Spot</a>
+                <a href="/p2p" class="tab-link hover:text-[#f0b90b] transition">P2P</a>
+            </div>
+        </div>
+        <div class="flex items-center gap-4">
+            <span id="user-display" class="text-xs bg-gray-700 px-3 py-1 rounded-full text-gray-300"></span>
+            <button onclick="logout()" class="text-red-400 text-xs font-bold uppercase hover:text-red-300">Logout</button>
+        </div>
+    </nav>
+
+    <main class="max-w-4xl mx-auto mt-10 p-6">
+        <div class="bg-white rounded-3xl shadow-xl p-8 border border-gray-100">
+            <div class="flex justify-between items-center mb-8">
+                <div>
+                    <h2 class="text-2xl font-black text-slate-800 italic">Spot Wallet</h2>
+                    <p class="text-gray-400 text-sm">รายการเหรียญทั้งหมดในกระเป๋า Spot ของคุณ</p>
+                </div>
+                <button onclick="loadSpot()" class="bg-gray-100 hover:bg-gray-200 p-2 rounded-full transition">
+                    🔄
+                </button>
+            </div>
+
+            <div class="overflow-hidden rounded-2xl border border-gray-100">
+                <table class="w-full text-left">
+                    <thead class="bg-gray-50 border-b border-gray-100">
+                        <tr>
+                            <th class="p-4 font-bold text-gray-500 text-xs uppercase">Asset (เหรียญ)</th>
+                            <th class="p-4 font-bold text-gray-500 text-xs uppercase text-right">Available Balance</th>
+                            <th class="p-4 font-bold text-gray-500 text-xs uppercase text-right">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody id="spot-table-body" class="divide-y divide-gray-50">
+                        </tbody>
+                </table>
+            </div>
+            
+            <div id="no-assets" class="hidden text-center py-20">
+                <div class="text-4xl mb-4">Empty</div>
+                <p class="text-gray-400">ยังไม่มีเหรียญในกระเป๋า Spot<br>กรุณาโอนเหรียญจาก Funding มาที่นี่</p>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        const uid = localStorage.getItem('user_id');
+        if(!uid) window.location.href = 'login.html';
+        document.getElementById('user-display').innerText = `@${localStorage.getItem('user_name')}`;
+
+        async function loadSpot() {
+            try {
+                // เรียก API ที่เราสร้างใหม่เพื่อดึงรายการเหรียญทั้งหมด
+                const res = await fetch('/api/spot-assets/' + uid);
+                const assets = await res.json();
+                
+                const tbody = document.getElementById('spot-table-body');
+                const noAssetsDiv = document.getElementById('no-assets');
+                
+                tbody.innerHTML = ''; 
+
+                if(assets && assets.length > 0) {
+                    noAssetsDiv.classList.add('hidden');
+                    
+                    assets.forEach(asset => {
+                        const row = `
+                            <tr class="hover:bg-blue-50/30 transition">
+                                <td class="p-4">
+                                    <div class="flex items-center gap-3">
+                                        <div class="w-10 h-10 bg-slate-800 rounded-full flex items-center justify-center text-white font-bold text-xs shadow-inner">
+                                            ${asset.coin_symbol.substring(0, 1)}
+                                        </div>
+                                        <div>
+                                            <div class="font-black text-slate-700 uppercase">${asset.coin_symbol}</div>
+                                            <div class="text-[10px] text-gray-400 font-bold uppercase">Asset Name</div>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td class="p-4 text-right">
+                                    <div class="font-mono font-black text-slate-800 text-lg">
+                                        ${parseFloat(asset.balance).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 8})}
+                                    </div>
+                                </td>
+                                <td class="p-4 text-right">
+                                    <div class="flex justify-end gap-2">
+                                        <a href="/?tab=sp" class="bg-blue-600 text-white px-4 py-2 rounded-xl text-xs font-bold hover:bg-blue-700 transition">Trade</a>
+                                        <a href="/?tab=tf" class="bg-gray-100 text-gray-600 px-4 py-2 rounded-xl text-xs font-bold hover:bg-gray-200 transition">Transfer</a>
+                                    </div>
+                                </td>
+                            </tr>
+                        `;
+                        tbody.innerHTML += row;
+                    });
+                } else {
+                    noAssetsDiv.classList.remove('hidden');
+                }
+            } catch (err) {
+                console.error("Error loading spot assets:", err);
+            }
+        }
+
+        function logout() { localStorage.clear(); window.location.href='login.html'; }
+        
+        // โหลดข้อมูลทันทีที่เปิดหน้า
+        loadSpot();
+    </script>
+</body>
+</html>

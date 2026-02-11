@@ -135,31 +135,50 @@ app.get('/api/history/:uid', (req, res) => {
     db.all(`SELECT * FROM transactions WHERE sender_id = ? OR receiver_id = ? ORDER BY tx_id DESC`, [req.params.uid, req.params.uid], (err, rows) => res.json(rows));
 });
 
+// 5. Transfer between Spot and Funding
 app.post('/api/transfer', (req, res) => {
-    const { user_id, amount, from_type, to_type } = req.body;
+    // เพิ่มการรับ coin_symbol จาก body
+    const { user_id, amount, from_type, to_type, coin_symbol } = req.body;
     const amt = parseFloat(amount);
 
-    db.get(`SELECT spot_wallet_id, funding_wallet_id FROM users WHERE user_id = ?`, [user_id], (err, user) => {
-        if (!user) return res.status(404).json({ message: "User not found" });
+    if (!coin_symbol) return res.status(400).json({ message: "กรุณาระบุเหรียญที่จะโอน" });
 
-        const from_id = from_type === 'Spot' ? user.spot_wallet_id : user.funding_wallet_id;
-        const to_id = to_type === 'Spot' ? user.spot_wallet_id : user.funding_wallet_id;
+    // ค้นหา wallet_id ของเหรียญนั้นๆ ทั้งต้นทางและปลายทาง
+    db.get(`SELECT wallet_id FROM wallets WHERE user_id = ? AND wallet_type = ? AND coin_symbol = ?`, 
+    [user_id, from_type, coin_symbol], (err, fromWallet) => {
+        
+        if (!fromWallet) return res.status(404).json({ message: `ไม่พบเหรียญ ${coin_symbol} ในกระเป๋า ${from_type}` });
 
-        // 1. ตรวจสอบและหักเงินจากกระเป๋าต้นทาง
+        db.get(`SELECT wallet_id FROM wallets WHERE user_id = ? AND wallet_type = ? AND coin_symbol = ?`,
+        [user_id, to_type, coin_symbol], (err, toWallet) => {
+
+            // ถ้ากระเป๋าปลายทางยังไม่มีเหรียญนี้ ให้สร้างขึ้นมาใหม่
+            if (!toWallet) {
+                db.run(`INSERT INTO wallets (user_id, wallet_type, coin_symbol, balance) VALUES (?, ?, ?, 0)`,
+                [user_id, to_type, coin_symbol], function() {
+                    executeTransfer(fromWallet.wallet_id, this.lastID);
+                });
+            } else {
+                executeTransfer(fromWallet.wallet_id, toWallet.wallet_id);
+            }
+        });
+    });
+
+    function executeTransfer(from_id, to_id) {
+        // 1. หักเงินต้นทาง
         db.run(`UPDATE wallets SET balance = balance - ? WHERE wallet_id = ? AND balance >= ?`, [amt, from_id, amt], function(err) {
             if (this.changes === 0) return res.status(400).json({ message: "ยอดเงินไม่เพียงพอ" });
 
-            // 2. เพิ่มเงินในกระเป๋าปลายทาง
+            // 2. เพิ่มเงินปลายทาง
             db.run(`UPDATE wallets SET balance = balance + ? WHERE wallet_id = ?`, [amt, to_id], () => {
-                
-                // 3. บันทึก Transaction การโอน
+                // 3. บันทึกประวัติ (ใช้ coin_symbol จริงๆ ไม่ใช่คำว่า 'ASSET')
                 db.run(`INSERT INTO transactions (sender_id, receiver_id, tx_type, coin_symbol, amount) 
-                        VALUES (?, ?, 'Transfer', 'ASSET', ?)`, [user_id, user_id, amt]);
+                        VALUES (?, ?, 'Transfer', ?, ?)`, [user_id, user_id, coin_symbol, amt]);
 
-                res.json({ success: true, message: `โอนจาก ${from_type} ไป ${to_type} สำเร็จ` });
+                res.json({ success: true, message: `โอน ${amt} ${coin_symbol} สำเร็จ` });
             });
         });
-    });
+    }
 });
 // --- [P2P SYSTEM] ---
 
@@ -186,5 +205,48 @@ app.get('/api/p2p/list', (req, res) => {
     db.all(`SELECT p.*, u.user_name FROM p2p_order p JOIN users u ON p.user_id = u.user_id WHERE p.status_orders = 'open'`, (err, rows) => res.json(rows));
 });
 
+app.get('/spot', (req, res) => {
+    res.sendFile(__dirname + '/public/spot.html');
+});
+
+app.get('/p2p', (req, res) => {
+    res.sendFile(__dirname + '/public/p2p.html');
+});
+
+// เพิ่มโค้ดนี้ลงใน app.js
+app.get('/api/spot-assets/:uid', (req, res) => {
+    const uid = req.params.uid;
+    // เลือกเฉพาะกระเป๋า Spot และเหรียญที่มีจำนวนมากกว่า 0
+    db.all(`SELECT coin_symbol, balance FROM wallets WHERE user_id = ? AND wallet_type = 'Spot' AND balance > 0`, 
+    [uid], (err, rows) => {
+        if (err) return res.status(500).json({ error: err.message });
+        res.json(rows); // ส่งข้อมูลออกไปเป็น Array เช่น [{coin_symbol:'BTC', balance:0.5}, {coin_symbol:'ETH', balance:1.2}]
+    });
+});
+
+// เพิ่ม/แก้ไขใน app.js
+app.get('/api/account-summary/:uid', (req, res) => {
+    const uid = req.params.uid;
+    // ดึงยอดรวมแยกตามประเภทกระเป๋า
+    const sql = `
+        SELECT 
+            wallet_type, 
+            SUM(balance) as total_balance,
+            GROUP_CONCAT(coin_symbol || ': ' || balance) as details
+        FROM wallets 
+        WHERE user_id = ? 
+        GROUP BY wallet_type`;
+
+    db.all(sql, [uid], (err, rows) => {
+        if (err) return res.status(500).json({ error: err.message });
+        
+        let summary = { spot: 0, funding: 0 };
+        rows.forEach(row => {
+            if (row.wallet_type === 'Spot') summary.spot = row.total_balance;
+            if (row.wallet_type === 'Funding') summary.funding = row.total_balance;
+        });
+        res.json(summary);
+    });
+});
 
 app.listen(3000, () => console.log('🚀 Server at http://localhost:3000'));
